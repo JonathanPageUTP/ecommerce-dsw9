@@ -49,7 +49,7 @@ app.use((req, res, next) => {
 // Ruta principal actualizada con tu información
 app.get('/', (req, res) => {
   res.send(`
-    <h1>Hello World - J. Page</h1>
+    <h1>Hello World - Jojonathan. Page</h1>
     <p>La aplicación está funcionando correctamente.</p>
     <p><b>Puerto:</b> ${port} | <b>Entorno:</b> ${process.env.NODE_ENV || 'development'}</p>
     <p>Conectado a la base de datos: <b>${process.env.DB_NAME}</b></p>
