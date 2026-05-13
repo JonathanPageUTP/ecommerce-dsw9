@@ -6,6 +6,9 @@ const cookieParser = require('cookie-parser');
 const ejsLayouts   = require('express-ejs-layouts');
 const sequelize    = require('./config/database');
 
+// Importación de Modelos (necesario para la ruta principal y sincronización)
+const { Product, Order, OrderItem } = require('./models');
+
 // Importación de rutas
 const productRoutes  = require('./routes/products');
 const cartRoutes     = require('./routes/cart');
@@ -17,7 +20,7 @@ const port = process.env.PORT || 3000;
 // Configuración del motor de plantillas (EJS)
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.set('layout', 'layout'); 
+app.set('layout', 'layout'); // Usa views/layout.ejs como base
 app.use(ejsLayouts);
 
 // Middlewares básicos
@@ -26,14 +29,14 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 
-// Configuración de sesión usando el SESSION_SECRET definido previamente
+// Configuración de sesión segura
 app.use(session({
   secret:            process.env.SESSION_SECRET || 'dev-secret',
   resave:            false,
   saveUninitialized: false,
   cookie: { 
     maxAge: 3600000,
-    secure: process.env.NODE_ENV === 'production' // Seguridad extra en producción
+    secure: process.env.NODE_ENV === 'production' 
   }
 }));
 
@@ -46,18 +49,28 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ruta principal actualizada con tu información
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>Hello World - Jojonathan. Page</h1>
-    <p>La aplicación está funcionando correctamente.</p>
-    <p><b>Puerto:</b> ${port} | <b>Entorno:</b> ${process.env.NODE_ENV || 'development'}</p>
-    <p>Conectado a la base de datos: <b>${process.env.DB_NAME}</b></p>
-  `);
+/**
+ * RUTA PRINCIPAL (HOME)
+ * Corregida para usar 'featuredProducts' y evitar el ReferenceError
+ */
+app.get('/', async (req, res) => {
+  try {
+    // Buscamos los productos en la base de datos de Aiven
+    const productsFromDB = await Product.findAll();
+    
+    // Renderizamos la vista enviando la variable con el nombre exacto que pide EJS
+    res.render('index', { 
+      featuredProducts: productsFromDB, 
+      title: 'Inicio - J. Page Store' 
+    }); 
+  } catch (error) {
+    console.error('Error al cargar la página de inicio:', error);
+    res.status(500).send("Error al conectar con la base de datos de Aiven");
+  }
 });
 
-// Definición de rutas
-app.use('/',         productRoutes); // Descomentado para que veas tus productos
+// Definición de rutas del sistema
+app.use('/products', productRoutes);
 app.use('/cart',     cartRoutes);
 app.use('/checkout', checkoutRoutes);
 
@@ -66,12 +79,15 @@ app.use((req, res) => {
   res.status(404).render('404', { title: 'Página no encontrada' });
 });
 
-// Sincronización con la base de datos de Aiven y arranque del servidor
+/**
+ * Sincronización con MySQL en Aivencloud
+ * Crea las tablas Products, Orders y OrderItems si no existen
+ */
 sequelize.sync()
   .then(() => {
     console.log('Conexión exitosa a MySQL en Aivencloud');
     app.listen(port, () => {
-      console.log(`Servidor corriendo en el puerto: ${port}`);
+      console.log(`Servidor corriendo en: http://localhost:${port}`);
     });
   })
   .catch(err => {
