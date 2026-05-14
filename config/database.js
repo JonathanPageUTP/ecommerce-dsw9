@@ -4,24 +4,16 @@ const fs   = require('fs');
 const path = require('path');
 
 function getSslConfig() {
-  // Si estamos en Render o producción, forzamos SSL sin validación estricta de CA
-  if (process.env.NODE_ENV === 'production' || process.env.DB_HOST.includes('aivencloud.com')) {
-    return {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false // Esto soluciona el error del certificado autofirmado
-      }
-    };
+  if (process.env.DB_SSL_CA_BASE64) {
+    return { ssl: { ca: Buffer.from(process.env.DB_SSL_CA_BASE64, 'base64').toString('utf8') } };
   }
-  
-  // Tu lógica original por si acaso tienes el ca.pem localmente
   const certPath = path.join(__dirname, '..', 'ca.pem');
   if (fs.existsSync(certPath)) {
     return { ssl: { ca: fs.readFileSync(certPath) } };
   }
-  
   return {};
 }
+
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
