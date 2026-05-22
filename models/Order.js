@@ -14,7 +14,13 @@ const Order = sequelize.define('Order', {
   total:     { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   paymentId: { type: DataTypes.STRING },
   // pending | paid | payment_failed | canceled
-  status:    { type: DataTypes.STRING,         defaultValue: 'pending' }
+  status:    { type: DataTypes.STRING,         defaultValue: 'pending' },
+
+  store_id: {
+  type: DataTypes.INTEGER,
+  allowNull: true,
+  references: { model: 'stores', key: 'id' }
+}
 });
 
 module.exports = Order;

@@ -35,20 +35,22 @@ const checkoutController = {
         return res.redirect('/cart');
       const cart  = req.session.cart;
       const order = await Order.create({
-        firstName: req.body.firstName, lastName:  req.body.lastName,
-        email:     req.body.email,     address:   req.body.address,
-        city:      req.body.city,      province:  req.body.province,
-        zip:       req.body.zip || '', phone:     req.body.phone,
-        total:     cart.totalPrice,    status:    'pending'
-      });
-      for (const item of cart.items) {
-        await OrderItem.create({
-          OrderId:   order.id,
-          ProductId: item.product.id,
-          quantity:  item.quantity,
-          price:     item.product.price
-        });
-      }
+  firstName: req.body.firstName, lastName:  req.body.lastName,
+  email:     req.body.email,     address:   req.body.address,
+  city:      req.body.city,      province:  req.body.province,
+  zip:       req.body.zip || '', phone:     req.body.phone,
+  total:     cart.totalPrice,    status:    'pending',
+  user_id:   req.session.userId || null
+});
+     for (const item of cart.items) {
+  await OrderItem.create({
+    order_id:   order.id,
+    product_id: item.product.id,
+    store_id:   item.product.store_id || null,
+    quantity:   item.quantity,
+    price:      item.product.price
+  });
+}
       req.session.pendingOrderId = order.id;
       // Renderiza la vista con los botones de PayPal
       res.render('payment', {
@@ -83,8 +85,9 @@ const checkoutController = {
     } catch (err) {
       res.status(500).json({ error: 'Error al crear orden PayPal' });
     }
-  },// 3. El JS de payment.ejs llama aquí cuando el usuario aprueba en PayPal
-  capturePayPalOrder: async (req, res) => {
+  },
+
+    capturePayPalOrder: async (req, res) => {
     try {
       const { paypalOrderId, orderId } = req.body;
       const accessToken = await getPayPalAccessToken();
